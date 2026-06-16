@@ -1,0 +1,32 @@
+# Environment
+.env
+
+# Composer
+backend/vendor/
+worker/vendor/
+
+# Workerman runtime files
+worker/*.log
+worker/*.pid
+
+# CodeIgniter writable directory
+backend/writable/cache/*
+backend/writable/logs/*
+backend/writable/session/*
+backend/writable/uploads/*
+backend/writable/debugbar/*
+!backend/writable/cache/index.html
+!backend/writable/logs/index.html
+!backend/writable/session/index.html
+!backend/writable/uploads/index.html
+!backend/writable/debugbar/index.html
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

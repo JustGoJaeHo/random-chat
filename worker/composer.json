@@ -1,0 +1,11 @@
+{
+    "name": "root/worker",
+    "autoload": {
+        "psr-4": {
+            "Root\\Worker\\": "src/"
+        }
+    },
+    "require": {
+        "workerman/workerman": "^5.2"
+    }
+}
