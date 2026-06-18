@@ -93,6 +93,7 @@
         .screen {
             display: none;
             flex: 1;
+            min-height: 0;
             flex-direction: column;
             align-items: center;
             justify-content: center;
@@ -148,22 +149,24 @@
         /* chatting – messages fill vertical space */
         #screen-chat {
             justify-content: flex-end;
+            align-items: stretch;
             padding: 0;
         }
 
         #messages {
             flex: 1;
+            min-height: 0;
             overflow-y: auto;
             padding: 16px 16px 4px;
             display: flex;
             flex-direction: column;
             gap: 8px;
             scroll-behavior: smooth;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
 
-        #messages::-webkit-scrollbar { width: 4px; }
-        #messages::-webkit-scrollbar-track { background: transparent; }
-        #messages::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+        #messages::-webkit-scrollbar { display: none; }
 
         .msg-row {
             display: flex;
@@ -175,12 +178,13 @@
         .msg-row.system { align-items: center; }
 
         .bubble {
-            max-width: 72%;
+            max-width: 75%;
             padding: 9px 14px;
             border-radius: 16px;
             font-size: 14px;
             line-height: 1.5;
             word-break: break-word;
+            text-align: left;
         }
 
         .me .bubble {
