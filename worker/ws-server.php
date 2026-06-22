@@ -8,8 +8,10 @@ use Workerman\Worker;
 const RC_QUEUE    = 'rc:queue';    // LIST  – waiting connection IDs (RPUSH/LPOP)
 const RC_IN_QUEUE = 'rc:in_queue'; // SET   – quick membership check
 
-function connRoomKey(int $id): string       { return "rc:conn:{$id}:room"; }
+function connRoomKey(int $id): string        { return "rc:conn:{$id}:room"; }
 function roomConnsKey(string $roomId): string { return "rc:room:{$roomId}:conns"; }
+function connBidKey(int $id): string         { return "rc:conn:{$id}:bid"; }
+function bidConnsKey(string $bid): string    { return "rc:bid:{$bid}:conns"; }
 
 // ─── Global state (single-process worker) ───────────────────────────────────
 $redis  = null;   // Redis connection
@@ -105,6 +107,27 @@ function cleanupRoom(int $leaverId, bool $notifyPartner = true): void
     $r->del(roomConnsKey($roomId));
 }
 
+// ─── Browser-session helpers ─────────────────────────────────────────────────
+/**
+ * Returns true if another connection with the same browserId is currently
+ * in the waiting queue or in a chat room (excludes $excludeConnId itself).
+ */
+function isBidActive(string $bid, int $excludeConnId): bool
+{
+    $r     = getRedis();
+    $conns = $r->sMembers(bidConnsKey($bid));
+    foreach ($conns as $rawId) {
+        $cid = (int)$rawId;
+        if ($cid === $excludeConnId) {
+            continue;
+        }
+        if (isInQueue($cid) || isInRoom($cid)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 // ─── Matching logic ──────────────────────────────────────────────────────────
 /**
  * Tries to match the given connection with a waiting partner.
@@ -121,6 +144,19 @@ function doMatch(int $connId, object $connection): void
 
     if (isInQueue($connId)) {
         sendTo($connection, 'error', ['message' => '이미 매칭 대기 중입니다.']);
+        return;
+    }
+
+    // Block if another tab with the same browserId is already active
+    $bid = $r->get(connBidKey($connId));
+    if (!$bid) {
+        sendTo($connection, 'error', ['message' => '세션을 초기화하세요.']);
+        return;
+    }
+    if (isBidActive($bid, $connId)) {
+        sendTo($connection, 'duplicate_session', [
+            'message' => '이미 다른 탭에서 서비스를 이용 중입니다.',
+        ]);
         return;
     }
 
@@ -198,6 +234,22 @@ $ws->onMessage = function (object $connection, string $rawMessage): void {
     try {
         switch ($type) {
 
+            case 'session_init':
+                $bid = trim($data['browserId'] ?? '');
+                if (!preg_match('/^[A-Za-z0-9_\-]{8,64}$/', $bid)) {
+                    sendTo($connection, 'error', ['message' => '잘못된 세션 ID입니다.']);
+                    break;
+                }
+                $r = getRedis();
+                $r->set(connBidKey($connId), $bid);
+                $r->sAdd(bidConnsKey($bid), (string)$connId);
+                if (isBidActive($bid, $connId)) {
+                    sendTo($connection, 'duplicate_session', [
+                        'message' => '이미 다른 탭에서 서비스를 이용 중입니다.',
+                    ]);
+                }
+                break;
+
             case 'match_start':
                 doMatch($connId, $connection);
                 break;
@@ -258,6 +310,25 @@ $ws->onClose = function (object $connection): void {
     try {
         removeFromQueue($connId);
         cleanupRoom($connId, true);
+
+        $r   = getRedis();
+        $bid = $r->get(connBidKey($connId));
+        if ($bid) {
+            $r->sRem(bidConnsKey($bid), (string)$connId);
+            $r->del(connBidKey($connId));
+
+            // Notify sibling tabs that the active session has ended
+            // so they can unblock themselves
+            $siblingIds = $r->sMembers(bidConnsKey($bid));
+            foreach ($siblingIds as $rawId) {
+                $sibConn = getConn((int)$rawId);
+                if ($sibConn) {
+                    sendTo($sibConn, 'session_released', [
+                        'message' => '다른 탭의 연결이 종료되었습니다.',
+                    ]);
+                }
+            }
+        }
     } catch (\Throwable $e) {
         error_log('[RandomChat] onClose error: ' . $e->getMessage());
     }

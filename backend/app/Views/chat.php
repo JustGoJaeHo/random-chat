@@ -75,6 +75,7 @@
         #status-badge.waiting    .dot { background: #e3b341; animation: pulse 1.2s infinite; }
         #status-badge.chatting   .dot { background: #58a6ff; }
         #status-badge.left       .dot { background: #f85149; }
+        #status-badge.blocked    .dot { background: #f85149; }
 
         @keyframes pulse {
             0%, 100% { opacity: 1; }
@@ -323,6 +324,13 @@
             </button>
         </div>
 
+        <!-- Blocked screen (duplicate tab) -->
+        <div id="screen-blocked" class="screen">
+            <div class="icon">🚫</div>
+            <h2>다른 탭에서 이용 중</h2>
+            <p>이미 다른 탭에서 채팅 서비스를<br>이용하고 있습니다.<br>해당 탭을 닫으면 이 탭에서 이용할 수 있습니다.</p>
+        </div>
+
         <!-- Chat screen -->
         <div id="screen-chat" class="screen active">
             <div id="messages"></div>
@@ -355,18 +363,30 @@
     'use strict';
 
     // ── State ──────────────────────────────────────────────────────────────
-    // 'disconnected' | 'idle' | 'waiting' | 'chatting' | 'partner_left'
+    // 'disconnected' | 'idle' | 'waiting' | 'chatting' | 'partner_left' | 'blocked'
     let appState = 'disconnected';
     let ws = null;
     let reconnectDelay = 1000;
 
+    // ── Browser ID (shared across tabs via localStorage) ───────────────────
+    function getBrowserId() {
+        let bid = localStorage.getItem('rc_browser_id');
+        if (!bid) {
+            bid = 'b' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+            localStorage.setItem('rc_browser_id', bid);
+        }
+        return bid;
+    }
+    const browserId = getBrowserId();
+
     // ── Elements ───────────────────────────────────────────────────────────
     const el = {
-        statusBadge:   document.getElementById('status-badge'),
-        statusText:    document.getElementById('status-text'),
-        screenIdle:    document.getElementById('screen-idle'),
-        screenWaiting: document.getElementById('screen-waiting'),
-        screenChat:    document.getElementById('screen-chat'),
+        statusBadge:    document.getElementById('status-badge'),
+        statusText:     document.getElementById('status-text'),
+        screenIdle:     document.getElementById('screen-idle'),
+        screenWaiting:  document.getElementById('screen-waiting'),
+        screenBlocked:  document.getElementById('screen-blocked'),
+        screenChat:     document.getElementById('screen-chat'),
         messages:      document.getElementById('messages'),
         msgInput:      document.getElementById('msg-input'),
         btnMatch:      document.getElementById('btn-match'),
@@ -385,6 +405,7 @@
         // Screens
         el.screenIdle.classList.toggle('active',    s === 'idle');
         el.screenWaiting.classList.toggle('active', s === 'waiting');
+        el.screenBlocked.classList.toggle('active', s === 'blocked');
         el.screenChat.classList.toggle('active',    s === 'chatting' || s === 'partner_left');
 
         // Footer (only during chatting)
@@ -401,6 +422,7 @@
             waiting:      ['waiting',    '매칭 대기'],
             chatting:     ['chatting',   '채팅 중'],
             partner_left: ['left',       '상대방 퇴장'],
+            blocked:      ['blocked',    '다른 탭 이용 중'],
         };
         const [cls, txt] = statusMap[s] || ['connecting', '연결 중...'];
         el.statusBadge.className = cls;
@@ -447,6 +469,7 @@
         switch (data.type) {
 
             case 'connected':
+                send('session_init', { browserId });
                 setState('idle');
                 reconnectDelay = 1000;
                 break;
@@ -482,6 +505,16 @@
                 setState('idle');
                 el.btnLeave.textContent   = '끝내기';
                 el.btnRematch.textContent = '재매칭';
+                break;
+
+            case 'duplicate_session':
+                setState('blocked');
+                break;
+
+            case 'session_released':
+                if (appState === 'blocked') {
+                    setState('idle');
+                }
                 break;
 
             case 'error':
