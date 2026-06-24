@@ -286,6 +286,121 @@
         .btn-full { width: 100%; }
 
         .hidden { display: none !important; }
+
+        /* ── Register screen ─────────────────────────────────────────────── */
+        #screen-register {
+            justify-content: flex-start;
+            align-items: stretch;
+            padding: 0;
+            overflow-y: auto;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        #screen-register::-webkit-scrollbar { display: none; }
+
+        #register-inner {
+            padding: 20px 20px 28px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #register-inner h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        /* 묶음 컨테이너 */
+        .field-section {
+            background: rgba(255,255,255,.02);
+            border: 1px solid #21262d;
+            border-radius: 10px;
+            padding: 10px 12px 6px;
+            margin-bottom: 20px;
+        }
+
+        /* 가로 레이아웃: label | input-wrap */
+        .field-group {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+
+        .field-group label {
+            width: 76px;
+            flex-shrink: 0;
+            font-size: 12px;
+            font-weight: 500;
+            color: #8b949e;
+            padding-top: 10px;
+            text-align: right;
+            line-height: 1.3;
+        }
+
+        .field-input-wrap {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .field-input-wrap input,
+        .field-input-wrap .gender-row {
+            width: 100%;
+        }
+
+        .field-input-wrap input {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 13px;
+            color: #e6edf3;
+            outline: none;
+            transition: border-color .15s;
+        }
+
+        .field-input-wrap input:focus { border-color: #58a6ff; }
+        .field-input-wrap input::placeholder { color: #6e7681; }
+
+        .gender-row {
+            display: flex;
+            gap: 6px;
+        }
+
+        .gender-btn {
+            flex: 1;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 8px 0;
+            font-size: 13px;
+            color: #8b949e;
+            cursor: pointer;
+            transition: all .15s;
+            font-weight: 500;
+        }
+
+        .gender-btn.selected {
+            border-color: #58a6ff;
+            color: #58a6ff;
+            background: rgba(88,166,255,.08);
+        }
+
+        .field-error {
+            font-size: 11px;
+            color: #f85149;
+            min-height: 20px;
+            padding: 2px 2px 0;
+        }
+
+        .register-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 6px;
+        }
     </style>
 </head>
 <body>
@@ -312,6 +427,102 @@
             <button id="btn-match" class="btn btn-primary btn-full" style="max-width:240px">
                 채팅 시작
             </button>
+            <button id="btn-show-register" class="btn btn-subtle btn-full" style="max-width:240px; margin-top:10px">
+                회원가입
+            </button>
+        </div>
+
+        <!-- Register screen -->
+        <div id="screen-register" class="screen">
+            <div id="register-inner">
+                <h2>회원가입</h2>
+
+                <!-- 계정 정보 묶음 -->
+                <div class="field-section">
+                    <div class="field-group">
+                        <label for="reg-user-id">아이디</label>
+                        <div class="field-input-wrap">
+                            <input id="reg-user-id" type="text" placeholder="6~20자의 영문 소문자, 숫자 (영문 시작)" maxlength="20" autocomplete="user-id">
+                            <div class="field-error" id="err-user-id"></div>
+                        </div>
+                    </div>
+                    <div class="field-group">
+                        <label for="reg-password">패스워드</label>
+                        <div class="field-input-wrap">
+                            <input id="reg-password" type="password" placeholder="8~16자의 영문+숫자+특수문자" maxlength="16" autocomplete="new-password">
+                            <div class="field-error" id="err-password"></div>
+                        </div>
+                    </div>
+                    <div class="field-group">
+                        <label for="reg-password-confirm">패스워드 확인</label>
+                        <div class="field-input-wrap">
+                            <input id="reg-password-confirm" type="password" placeholder="패스워드를 다시 입력해주세요." maxlength="16" autocomplete="new-password">
+                            <div class="field-error" id="err-password-confirm"></div>
+                        </div>
+                    </div>
+                    <div class="field-group">
+                        <label for="reg-email">이메일</label>
+                        <div class="field-input-wrap">
+                            <input id="reg-email" type="email" placeholder="example@email.com" maxlength="100" autocomplete="email">
+                            <div class="field-error" id="err-email"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 개인 정보 묶음 -->
+                <div class="field-section">
+                    <div class="field-group">
+                        <label for="reg-name">이름</label>
+                        <div class="field-input-wrap">
+                            <input id="reg-name" type="text" placeholder="2~20자의 한글, 영문 (실명)" maxlength="20" autocomplete="name">
+                            <div class="field-error" id="err-name"></div>
+                        </div>
+                    </div>
+                    <div class="field-group">
+                        <label for="reg-birth-date">생년월일</label>
+                        <div class="field-input-wrap">
+                            <input id="reg-birth-date" type="date" min="1900-01-01" max="" autocomplete="bday" style="cursor:pointer">
+                            <div class="field-error" id="err-birth-date"></div>
+                        </div>
+                    </div>
+                    <div class="field-group">
+                        <label>성별</label>
+                        <div class="field-input-wrap">
+                            <div class="gender-row">
+                                <button type="button" class="gender-btn" data-value="M">남성</button>
+                                <button type="button" class="gender-btn" data-value="F">여성</button>
+                            </div>
+                            <input type="hidden" id="reg-gender" value="">
+                            <div class="field-error" id="err-gender"></div>
+                        </div>
+                    </div>
+                    <div class="field-group">
+                        <label for="reg-phone">휴대전화번호</label>
+                        <div class="field-input-wrap">
+                            <input id="reg-phone" type="tel" placeholder="010-0000-0000" maxlength="13" autocomplete="tel">
+                            <div class="field-error" id="err-phone"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 닉네임 묶음 -->
+                <div class="field-section">
+                    <div class="field-group">
+                        <label for="reg-nickname">닉네임</label>
+                        <div class="field-input-wrap">
+                            <input id="reg-nickname" type="text" placeholder="2~16자의 한글, 영문, 숫자" maxlength="16" autocomplete="off">
+                            <div class="field-error" id="err-nickname"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field-error" id="err-general" style="text-align:center; margin-bottom:6px"></div>
+
+                <div class="register-actions">
+                    <button id="btn-register-cancel" class="btn btn-subtle" style="flex:1">취소</button>
+                    <button id="btn-register-submit" class="btn btn-primary" style="flex:2">가입</button>
+                </div>
+            </div>
         </div>
 
         <!-- Waiting screen -->
@@ -363,7 +574,7 @@
     'use strict';
 
     // ── State ──────────────────────────────────────────────────────────────
-    // 'disconnected' | 'idle' | 'waiting' | 'chatting' | 'partner_left' | 'blocked'
+    // 'disconnected' | 'idle' | 'waiting' | 'chatting' | 'partner_left' | 'blocked' | 'register'
     let appState = 'disconnected';
     let ws = null;
     let reconnectDelay = 1000;
@@ -381,21 +592,35 @@
 
     // ── Elements ───────────────────────────────────────────────────────────
     const el = {
-        statusBadge:    document.getElementById('status-badge'),
-        statusText:     document.getElementById('status-text'),
-        screenIdle:     document.getElementById('screen-idle'),
-        screenWaiting:  document.getElementById('screen-waiting'),
-        screenBlocked:  document.getElementById('screen-blocked'),
-        screenChat:     document.getElementById('screen-chat'),
-        messages:      document.getElementById('messages'),
-        msgInput:      document.getElementById('msg-input'),
-        btnMatch:      document.getElementById('btn-match'),
-        btnCancel:     document.getElementById('btn-cancel'),
-        btnSend:       document.getElementById('btn-send'),
-        btnLeave:      document.getElementById('btn-leave'),
-        btnRematch:    document.getElementById('btn-rematch'),
-        footer:        document.getElementById('footer'),
-        inputArea:     document.getElementById('input-area'),
+        statusBadge:         document.getElementById('status-badge'),
+        statusText:          document.getElementById('status-text'),
+        screenIdle:          document.getElementById('screen-idle'),
+        screenWaiting:       document.getElementById('screen-waiting'),
+        screenBlocked:       document.getElementById('screen-blocked'),
+        screenChat:          document.getElementById('screen-chat'),
+        screenRegister:      document.getElementById('screen-register'),
+        messages:            document.getElementById('messages'),
+        msgInput:            document.getElementById('msg-input'),
+        btnMatch:            document.getElementById('btn-match'),
+        btnShowRegister:     document.getElementById('btn-show-register'),
+        btnCancel:           document.getElementById('btn-cancel'),
+        btnSend:             document.getElementById('btn-send'),
+        btnLeave:            document.getElementById('btn-leave'),
+        btnRematch:          document.getElementById('btn-rematch'),
+        btnRegisterCancel:   document.getElementById('btn-register-cancel'),
+        btnRegisterSubmit:   document.getElementById('btn-register-submit'),
+        footer:              document.getElementById('footer'),
+        inputArea:           document.getElementById('input-area'),
+        regUserId:           document.getElementById('reg-user-id'),
+        regPassword:         document.getElementById('reg-password'),
+        regPasswordConfirm:  document.getElementById('reg-password-confirm'),
+        regEmail:            document.getElementById('reg-email'),
+        regName:             document.getElementById('reg-name'),
+        regBirthDate:        document.getElementById('reg-birth-date'),
+        regGender:           document.getElementById('reg-gender'),
+        regPhone:            document.getElementById('reg-phone'),
+        regNickname:         document.getElementById('reg-nickname'),
+        genderBtns:          document.querySelectorAll('.gender-btn'),
     };
 
     // ── UI state machine ───────────────────────────────────────────────────
@@ -403,10 +628,11 @@
         appState = s;
 
         // Screens
-        el.screenIdle.classList.toggle('active',    s === 'idle');
-        el.screenWaiting.classList.toggle('active', s === 'waiting');
-        el.screenBlocked.classList.toggle('active', s === 'blocked');
-        el.screenChat.classList.toggle('active',    s === 'chatting' || s === 'partner_left');
+        el.screenIdle.classList.toggle('active',     s === 'idle');
+        el.screenWaiting.classList.toggle('active',  s === 'waiting');
+        el.screenBlocked.classList.toggle('active',  s === 'blocked');
+        el.screenChat.classList.toggle('active',     s === 'chatting' || s === 'partner_left');
+        el.screenRegister.classList.toggle('active', s === 'register');
 
         // Footer (only during chatting)
         el.footer.classList.toggle('hidden', s !== 'chatting');
@@ -423,6 +649,7 @@
             chatting:     ['chatting',   '채팅 중'],
             partner_left: ['left',       '상대방 퇴장'],
             blocked:      ['blocked',    '다른 탭 이용 중'],
+            register:     ['idle',       '회원가입'],
         };
         const [cls, txt] = statusMap[s] || ['connecting', '연결 중...'];
         el.statusBadge.className = cls;
@@ -617,6 +844,139 @@
         send('chat_message', { message: text });
         el.msgInput.value = '';
     }
+
+    // ── Register screen ────────────────────────────────────────────────────
+    // 생년월일 max를 오늘 날짜로 제한, 직접 입력 차단 (캘린더만 허용)
+    el.regBirthDate.setAttribute('max', new Date().toISOString().slice(0, 10));
+    el.regBirthDate.addEventListener('keydown', function (e) {
+        if (e.key !== 'Tab') e.preventDefault();
+    });
+
+    // 성별 토글
+    el.genderBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            el.genderBtns.forEach(function (b) { b.classList.remove('selected'); });
+            btn.classList.add('selected');
+            el.regGender.value = btn.dataset.value;
+        });
+    });
+
+    // 휴대전화번호 자동 하이픈
+    el.regPhone.addEventListener('input', function () {
+        let v = el.regPhone.value.replace(/\D/g, '');
+        if (v.length > 11) v = v.slice(0, 11);
+        if (v.length > 7) {
+            v = v.slice(0, 3) + '-' + v.slice(3, 7) + '-' + v.slice(7);
+        } else if (v.length > 3) {
+            v = v.slice(0, 3) + '-' + v.slice(3);
+        }
+        el.regPhone.value = v;
+    });
+
+    function clearRegisterErrors() {
+        ['user-id', 'password', 'password-confirm', 'email', 'name', 'birth-date', 'gender', 'phone', 'nickname', 'general'].forEach(function (k) {
+            var el2 = document.getElementById('err-' + k);
+            if (el2) el2.textContent = '';
+        });
+    }
+
+    function resetRegisterForm() {
+        el.regUserId.value          = '';
+        el.regPassword.value        = '';
+        el.regPasswordConfirm.value = '';
+        el.regEmail.value           = '';
+        el.regName.value            = '';
+        el.regBirthDate.value       = '';
+        el.regGender.value          = '';
+        el.regPhone.value           = '';
+        el.regNickname.value        = '';
+        el.genderBtns.forEach(function (b) { b.classList.remove('selected'); });
+        clearRegisterErrors();
+    }
+
+    el.btnShowRegister.addEventListener('click', function () {
+        resetRegisterForm();
+        setState('register');
+    });
+
+    el.btnRegisterCancel.addEventListener('click', function () {
+        setState('idle');
+    });
+
+    el.btnRegisterSubmit.addEventListener('click', function () {
+        clearRegisterErrors();
+
+        // 패스워드 확인 클라이언트 검증
+        if (el.regPassword.value !== el.regPasswordConfirm.value) {
+            document.getElementById('err-password-confirm').textContent = '패스워드가 일치하지 않습니다.';
+            el.regPasswordConfirm.focus();
+            return;
+        }
+
+        // 패스워드 복잡도 클라이언트 검증 (영문+숫자+특수문자)
+        var pwVal = el.regPassword.value;
+        if (!/[a-zA-Z]/.test(pwVal) || !/[0-9]/.test(pwVal) || !/[^a-zA-Z0-9]/.test(pwVal)) {
+            document.getElementById('err-password').textContent = '패스워드는 영문, 숫자, 특수문자를 모두 포함해야 합니다.';
+            el.regPassword.focus();
+            return;
+        }
+
+        el.btnRegisterSubmit.disabled = true;
+        el.btnRegisterSubmit.textContent = '가입 중...';
+
+        var formData = new FormData();
+        formData.append('user_id',    el.regUserId.value.trim());
+        formData.append('password',   el.regPassword.value);
+        formData.append('email',      el.regEmail.value.trim());
+        formData.append('name',       el.regName.value.trim());
+        formData.append('birth_date', el.regBirthDate.value);
+        formData.append('gender',     el.regGender.value);
+        formData.append('phone',      el.regPhone.value.trim());
+        formData.append('nickname',   el.regNickname.value.trim());
+
+        fetch('/auth/register', {
+            method: 'POST',
+            body: formData,
+        })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+            if (data.success) {
+                resetRegisterForm();
+                setState('idle');
+                // 간단한 성공 알림
+                var notice = document.createElement('div');
+                notice.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#238636;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;z-index:9999;';
+                notice.textContent = '회원가입이 완료되었습니다!';
+                document.body.appendChild(notice);
+                setTimeout(function () { notice.remove(); }, 3000);
+            } else {
+                var errors = data.errors || {};
+                var fieldMap = {
+                    user_id:    'err-user-id',
+                    password:   'err-password',
+                    email:      'err-email',
+                    name:       'err-name',
+                    birth_date: 'err-birth-date',
+                    gender:     'err-gender',
+                    phone:      'err-phone',
+                    nickname:   'err-nickname',
+                    general:    'err-general',
+                };
+                Object.keys(errors).forEach(function (key) {
+                    var elId = fieldMap[key] || 'err-general';
+                    var errEl = document.getElementById(elId);
+                    if (errEl) errEl.textContent = errors[key];
+                });
+            }
+        })
+        .catch(function () {
+            document.getElementById('err-general').textContent = '네트워크 오류가 발생했습니다. 다시 시도해주세요.';
+        })
+        .finally(function () {
+            el.btnRegisterSubmit.disabled = false;
+            el.btnRegisterSubmit.textContent = '가입';
+        });
+    });
 
     // ── Boot ───────────────────────────────────────────────────────────────
     setState('disconnected');
