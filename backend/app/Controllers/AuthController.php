@@ -80,7 +80,15 @@ class AuthController extends BaseController
 
         (new VisitLogModel())->recordVisit($ip, $browserId, $userAgent, $referer, $userId);
 
-        session()->set('user_id', $userId);
+        session()->set('user_id',  $userId);
+        session()->set('nickname', $user['nickname']);
+
+        return $this->response->setJSON(['success' => true, 'nickname' => $user['nickname']]);
+    }
+
+    public function logout(): ResponseInterface
+    {
+        session()->destroy();
 
         return $this->response->setJSON(['success' => true]);
     }

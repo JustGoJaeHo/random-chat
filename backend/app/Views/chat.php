@@ -48,6 +48,32 @@
             letter-spacing: -.3px;
         }
 
+        #header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #user-badge {
+            font-size: 12px;
+            font-weight: 500;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: #21262d;
+            color: #e6edf3;
+            border: 1px solid #30363d;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            max-width: 130px;
+        }
+
+        #user-badge-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         #status-badge {
             font-size: 12px;
             font-weight: 500;
@@ -414,9 +440,15 @@
     <!-- Header -->
     <div id="header">
         <h1>🎲 랜덤 채팅</h1>
-        <div id="status-badge" class="connecting">
-            <span class="dot"></span>
-            <span id="status-text">연결 중...</span>
+        <div id="header-right">
+            <div id="user-badge" class="hidden">
+                <span>👤</span>
+                <span id="user-badge-text"></span>
+            </div>
+            <div id="status-badge" class="connecting">
+                <span class="dot"></span>
+                <span id="status-text">연결 중...</span>
+            </div>
         </div>
     </div>
 
@@ -619,7 +651,8 @@
     let appState = 'disconnected';
     let ws = null;
     let reconnectDelay = 1000;
-    let loggedInUserId = <?= json_encode($loggedInUserId ?? null) ?>;
+    let loggedInUserId  = <?= json_encode($loggedInUserId ?? null) ?>;
+    let loggedInNickname = <?= json_encode($loggedInNickname ?? null) ?>;
 
     // ── Browser ID (shared across tabs via localStorage) ───────────────────
     function getBrowserId() {
@@ -636,6 +669,8 @@
     const el = {
         statusBadge:         document.getElementById('status-badge'),
         statusText:          document.getElementById('status-text'),
+        userBadge:           document.getElementById('user-badge'),
+        userBadgeText:       document.getElementById('user-badge-text'),
         screenIdle:          document.getElementById('screen-idle'),
         screenWaiting:       document.getElementById('screen-waiting'),
         screenBlocked:       document.getElementById('screen-blocked'),
@@ -681,6 +716,13 @@
         el.btnShowLogin.classList.toggle('hidden',    loggedIn);
         el.btnShowRegister.classList.toggle('hidden', loggedIn);
         el.btnLogout.classList.toggle('hidden',       !loggedIn);
+
+        if (loggedIn && loggedInNickname) {
+            el.userBadgeText.textContent = loggedInNickname;
+            el.userBadge.classList.remove('hidden');
+        } else {
+            el.userBadge.classList.add('hidden');
+        }
     }
 
     // ── UI state machine ───────────────────────────────────────────────────
@@ -1015,7 +1057,8 @@
         .then(function (res) { return res.json(); })
         .then(function (data) {
             if (data.success) {
-                loggedInUserId = userId;
+                loggedInUserId   = userId;
+                loggedInNickname = data.nickname || null;
                 resetLoginForm();
                 setState('idle');
                 updateAuthButtons();
@@ -1031,6 +1074,21 @@
             el.btnLoginSubmit.textContent = '로그인';
         });
     }
+
+    el.btnLogout.addEventListener('click', function () {
+        fetch('/auth/logout', { method: 'POST' })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+            if (data.success) {
+                loggedInUserId   = null;
+                loggedInNickname = null;
+                updateAuthButtons();
+            }
+        })
+        .catch(function () {
+            console.error('[RC] 로그아웃 요청 실패');
+        });
+    });
 
     el.btnShowRegister.addEventListener('click', function () {
         resetRegisterForm();
