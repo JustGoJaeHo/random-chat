@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\UserModel;
+use App\Models\VisitLogModel;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class AuthController extends BaseController
@@ -47,6 +48,39 @@ class AuthController extends BaseController
                 'errors'  => ['general' => '회원가입 처리 중 오류가 발생했습니다.'],
             ]);
         }
+
+        return $this->response->setJSON(['success' => true]);
+    }
+
+    public function login(): ResponseInterface
+    {
+        $userId   = $this->request->getPost('user_id');
+        $password = $this->request->getPost('password');
+
+        $user = (new UserModel())->findByUserId((string) $userId);
+
+        if ($user === null) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => '존재하지 않는 아이디입니다.',
+            ]);
+        }
+
+        if (!password_verify((string) $password, $user['password'])) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => '패스워드가 일치하지 않습니다.',
+            ]);
+        }
+
+        $ip        = $this->request->getIPAddress();
+        $userAgent = substr($this->request->getHeaderLine('User-Agent'), 0, 500) ?: null;
+        $referer   = substr((string) $this->request->getServer('HTTP_REFERER'), 0, 500) ?: null;
+        $browserId = $this->request->getCookie('rc_vid') ?: null;
+
+        (new VisitLogModel())->recordVisit($ip, $browserId, $userAgent, $referer, $userId);
+
+        session()->set('user_id', $userId);
 
         return $this->response->setJSON(['success' => true]);
     }

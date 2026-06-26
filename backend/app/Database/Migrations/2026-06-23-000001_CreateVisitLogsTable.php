@@ -17,9 +17,8 @@ class CreateVisitLogsTable extends Migration
                 'auto_increment' => true,
             ],
             'user_id' => [
-                'type'       => 'BIGINT',
+                'type'       => 'VARCHAR',
                 'constraint' => 20,
-                'unsigned'   => true,
                 'null'       => true,
                 'default'    => null,
             ],

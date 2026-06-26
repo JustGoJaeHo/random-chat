@@ -72,6 +72,11 @@ class UserModel extends Model
         ],
     ];
 
+    public function findByUserId(string $userId): ?array
+    {
+        return $this->where('user_id', $userId)->first();
+    }
+
     public function createUser(array $data): bool
     {
         $data['password'] = password_hash($data['password'], PASSWORD_BCRYPT);

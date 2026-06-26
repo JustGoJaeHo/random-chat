@@ -287,8 +287,9 @@
 
         .hidden { display: none !important; }
 
-        /* ── Register screen ─────────────────────────────────────────────── */
-        #screen-register {
+        /* ── Register / Login screen ─────────────────────────────────────── */
+        #screen-register,
+        #screen-login {
             justify-content: flex-start;
             align-items: stretch;
             padding: 0;
@@ -297,15 +298,18 @@
             scrollbar-width: none;
         }
 
-        #screen-register::-webkit-scrollbar { display: none; }
+        #screen-register::-webkit-scrollbar,
+        #screen-login::-webkit-scrollbar { display: none; }
 
-        #register-inner {
+        #register-inner,
+        #login-inner {
             padding: 20px 20px 28px;
             display: flex;
             flex-direction: column;
         }
 
-        #register-inner h2 {
+        #register-inner h2,
+        #login-inner h2 {
             font-size: 18px;
             font-weight: 600;
             margin-bottom: 16px;
@@ -427,9 +431,46 @@
             <button id="btn-match" class="btn btn-primary btn-full" style="max-width:240px">
                 채팅 시작
             </button>
+            <button id="btn-show-login" class="btn btn-blue btn-full" style="max-width:240px; margin-top:10px">
+                로그인
+            </button>
             <button id="btn-show-register" class="btn btn-subtle btn-full" style="max-width:240px; margin-top:10px">
                 회원가입
             </button>
+            <button id="btn-logout" class="btn btn-subtle btn-full hidden" style="max-width:240px; margin-top:10px">
+                로그아웃
+            </button>
+        </div>
+
+        <!-- Login screen -->
+        <div id="screen-login" class="screen">
+            <div id="login-inner">
+                <h2>로그인</h2>
+
+                <div class="field-section">
+                    <div class="field-group">
+                        <label for="login-user-id">아이디</label>
+                        <div class="field-input-wrap">
+                            <input id="login-user-id" type="text" placeholder="아이디를 입력해주세요." maxlength="20" autocomplete="username">
+                            <div class="field-error" id="err-login-user-id"></div>
+                        </div>
+                    </div>
+                    <div class="field-group">
+                        <label for="login-password">패스워드</label>
+                        <div class="field-input-wrap">
+                            <input id="login-password" type="password" placeholder="패스워드를 입력해주세요." maxlength="16" autocomplete="current-password">
+                            <div class="field-error" id="err-login-password"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field-error" id="err-login-general" style="text-align:center; margin-bottom:6px"></div>
+
+                <div class="register-actions">
+                    <button id="btn-login-cancel" class="btn btn-subtle" style="flex:1">취소</button>
+                    <button id="btn-login-submit" class="btn btn-primary" style="flex:2">로그인</button>
+                </div>
+            </div>
         </div>
 
         <!-- Register screen -->
@@ -574,10 +615,11 @@
     'use strict';
 
     // ── State ──────────────────────────────────────────────────────────────
-    // 'disconnected' | 'idle' | 'waiting' | 'chatting' | 'partner_left' | 'blocked' | 'register'
+    // 'disconnected' | 'idle' | 'waiting' | 'chatting' | 'partner_left' | 'blocked' | 'register' | 'login'
     let appState = 'disconnected';
     let ws = null;
     let reconnectDelay = 1000;
+    let loggedInUserId = <?= json_encode($loggedInUserId ?? null) ?>;
 
     // ── Browser ID (shared across tabs via localStorage) ───────────────────
     function getBrowserId() {
@@ -602,7 +644,17 @@
         messages:            document.getElementById('messages'),
         msgInput:            document.getElementById('msg-input'),
         btnMatch:            document.getElementById('btn-match'),
+        btnShowLogin:        document.getElementById('btn-show-login'),
         btnShowRegister:     document.getElementById('btn-show-register'),
+        btnLogout:           document.getElementById('btn-logout'),
+        btnLoginCancel:      document.getElementById('btn-login-cancel'),
+        btnLoginSubmit:      document.getElementById('btn-login-submit'),
+        screenLogin:         document.getElementById('screen-login'),
+        loginUserId:         document.getElementById('login-user-id'),
+        loginPassword:       document.getElementById('login-password'),
+        errLoginUserId:      document.getElementById('err-login-user-id'),
+        errLoginPassword:    document.getElementById('err-login-password'),
+        errLoginGeneral:     document.getElementById('err-login-general'),
         btnCancel:           document.getElementById('btn-cancel'),
         btnSend:             document.getElementById('btn-send'),
         btnLeave:            document.getElementById('btn-leave'),
@@ -623,6 +675,14 @@
         genderBtns:          document.querySelectorAll('.gender-btn'),
     };
 
+    // ── Auth button visibility ─────────────────────────────────────────────
+    function updateAuthButtons() {
+        var loggedIn = loggedInUserId !== null;
+        el.btnShowLogin.classList.toggle('hidden',    loggedIn);
+        el.btnShowRegister.classList.toggle('hidden', loggedIn);
+        el.btnLogout.classList.toggle('hidden',       !loggedIn);
+    }
+
     // ── UI state machine ───────────────────────────────────────────────────
     function setState(s) {
         appState = s;
@@ -633,6 +693,7 @@
         el.screenBlocked.classList.toggle('active',  s === 'blocked');
         el.screenChat.classList.toggle('active',     s === 'chatting' || s === 'partner_left');
         el.screenRegister.classList.toggle('active', s === 'register');
+        el.screenLogin.classList.toggle('active',    s === 'login');
 
         // Footer (only during chatting)
         el.footer.classList.toggle('hidden', s !== 'chatting');
@@ -650,6 +711,7 @@
             partner_left: ['left',       '상대방 퇴장'],
             blocked:      ['blocked',    '다른 탭 이용 중'],
             register:     ['idle',       '회원가입'],
+            login:        ['idle',       '로그인'],
         };
         const [cls, txt] = statusMap[s] || ['connecting', '연결 중...'];
         el.statusBadge.className = cls;
@@ -894,6 +956,82 @@
         clearRegisterErrors();
     }
 
+    el.btnShowLogin.addEventListener('click', function () {
+        resetLoginForm();
+        setState('login');
+    });
+
+    el.btnLoginCancel.addEventListener('click', function () {
+        setState('idle');
+    });
+
+    el.btnLoginSubmit.addEventListener('click', submitLogin);
+
+    el.loginPassword.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); submitLogin(); }
+    });
+
+    function clearLoginErrors() {
+        el.errLoginUserId.textContent  = '';
+        el.errLoginPassword.textContent = '';
+        el.errLoginGeneral.textContent  = '';
+    }
+
+    function resetLoginForm() {
+        el.loginUserId.value   = '';
+        el.loginPassword.value = '';
+        clearLoginErrors();
+    }
+
+    function submitLogin() {
+        clearLoginErrors();
+
+        var userId   = el.loginUserId.value.trim();
+        var password = el.loginPassword.value;
+
+        if (!userId) {
+            el.errLoginUserId.textContent = '아이디를 입력해주세요.';
+            el.loginUserId.focus();
+            return;
+        }
+
+        if (!password) {
+            el.errLoginPassword.textContent = '패스워드를 입력해주세요.';
+            el.loginPassword.focus();
+            return;
+        }
+
+        el.btnLoginSubmit.disabled = true;
+        el.btnLoginSubmit.textContent = '로그인 중...';
+
+        var formData = new FormData();
+        formData.append('user_id',  userId);
+        formData.append('password', password);
+
+        fetch('/auth/login', {
+            method: 'POST',
+            body: formData,
+        })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+            if (data.success) {
+                loggedInUserId = userId;
+                resetLoginForm();
+                setState('idle');
+                updateAuthButtons();
+            } else {
+                el.errLoginGeneral.textContent = data.message || '로그인에 실패했습니다.';
+            }
+        })
+        .catch(function () {
+            el.errLoginGeneral.textContent = '네트워크 오류가 발생했습니다. 다시 시도해주세요.';
+        })
+        .finally(function () {
+            el.btnLoginSubmit.disabled = false;
+            el.btnLoginSubmit.textContent = '로그인';
+        });
+    }
+
     el.btnShowRegister.addEventListener('click', function () {
         resetRegisterForm();
         setState('register');
@@ -979,6 +1117,7 @@
     });
 
     // ── Boot ───────────────────────────────────────────────────────────────
+    updateAuthButtons();
     setState('disconnected');
     connect();
 

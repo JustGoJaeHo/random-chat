@@ -6,3 +6,4 @@ use CodeIgniter\Router\RouteCollection;
 $routes->get('/', 'Home::index');
 $routes->get('/test/db', 'Test::db');
 $routes->post('/auth/register', 'AuthController::register');
+$routes->post('/auth/login', 'AuthController::login');

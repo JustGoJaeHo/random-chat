@@ -14,7 +14,7 @@ class VisitLogModel extends Model
     // 같은 날 재방문 시 UPDATE 허용 최소 간격 (분)
     private const UPDATE_THRESHOLD_MINUTES = 30;
 
-    public function recordVisit(string $ip, ?string $browserId, ?string $userAgent, ?string $referer): void
+    public function recordVisit(string $ip, ?string $browserId, ?string $userAgent, ?string $referer, ?string $userId = null): void
     {
         $today    = date('Y-m-d');
         $existing = $this->where('ip', $ip)
@@ -24,6 +24,7 @@ class VisitLogModel extends Model
 
         if ($existing === null) {
             $this->insert([
+                'user_id'    => $userId,
                 'browser_id' => $browserId,
                 'ip'         => $ip,
                 'user_agent' => $userAgent,
@@ -35,11 +36,16 @@ class VisitLogModel extends Model
 
         $threshold = time() - (self::UPDATE_THRESHOLD_MINUTES * 60);
         if (strtotime($existing['created_at']) > $threshold) {
+            if ($userId !== null && empty($existing['user_id'])) {
+                $this->where('id', $existing['id'])->set('user_id', $userId)->update();
+            }
             return;
         }
 
-        $this->where('id', $existing['id'])
-            ->set('created_at', date('Y-m-d H:i:s'))
-            ->update();
+        $updateData = ['created_at' => date('Y-m-d H:i:s')];
+        if ($userId !== null) {
+            $updateData['user_id'] = $userId;
+        }
+        $this->where('id', $existing['id'])->set($updateData)->update();
     }
 }
